@@ -7,6 +7,7 @@ import apiError from "./utils/apiError.js";
 
 const app = express();
 
+//express configuration
 app.use(helmet());
 app.use(
   cors({
@@ -20,6 +21,11 @@ app.use(express.static("public"));
 app.use(cookieParser());
 app.use(morgan("dev")); //change
 
+//routes
+import healthcheckRouter from "./routes/healthcheck.routes.js";
+app.use("/api/v1/healthcheck", healthcheckRouter);
+
+//global error handling
 app.use((err, req, res, next) => {
   const statusCode = err.statusCode || 500;
   res
