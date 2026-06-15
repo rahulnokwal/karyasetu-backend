@@ -87,15 +87,14 @@ userSchema.methods.generateRefreshToken = async function () {
   );
 };
 
-userSchema.methods.generateMailToken = async function () {
+userSchema.methods.generateCryptoToken = async function () {
   const unhashedToken = crypto.randomBytes(20).toString("hex");
   const hashedToken = crypto
     .createHash("sha256")
     .update(unhashedToken)
     .digest("hex");
 
-  const tokenExpiry = new Date();
-  tokenExpiry.setMinutes(tokenExpiry.getMinutes() + 60);
+  const tokenExpiry = Date.now() + 24 * 60 * 60 * 1000;
   return { unhashedToken, hashedToken, tokenExpiry };
 };
 
