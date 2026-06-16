@@ -84,4 +84,37 @@ const registerUser = asyncHandler(async (req, res) => {
     .json(new apiResponse(201, "User registered successfully", savedUser));
 });
 
-export { registerUser };
+const loginUser = asyncHandler(async (req, res) => {
+  const { email, password } = req.body;
+
+  const user = await User.findOne({ email });
+  if (!user) throw new apiError(401, "Invalid email or password");
+
+  const isPasswordCorrect = await user.verifyPassword(password);
+  if (!isPasswordCorrect) throw new apiError(401, "Invalid email or password");
+
+  const { accessToken, refreshToken } =
+    await generateAccessAndRefreshTokens(user);
+  user.refreshToken = refreshToken;
+
+  await user.save({ validateBeforeSave: false });
+
+  const loggedInUser = user.toObject();
+  delete loggedInUser.password;
+  delete loggedInUser.refreshToken;
+  delete loggedInUser.emailVerificationToken;
+  delete loggedInUser.emailVerificationTokenExpiry;
+
+  res
+    .status(200)
+    .cookie("refreshToken", refreshToken, options)
+    .cookie("accessToken", accessToken, options)
+    .json(
+      new apiResponse(200, "User logged in successfully", {
+        user: loggedInUser,
+        accessToken: accessToken,
+      })
+    );
+});
+
+export { registerUser, loginUser };

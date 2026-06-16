@@ -28,3 +28,16 @@ export const userRegisterValidator = () => {
       .withMessage("If provided, must be a valid mobile phone number"),
   ];
 };
+
+export const userLoginValidator = () => {
+  return [
+    body("email")
+      .trim()
+      .notEmpty()
+      .withMessage("Email is required")
+      .isEmail()
+      .withMessage("Must be a valid email address")
+      .normalizeEmail(),
+    body("password").trim().notEmpty().withMessage("Password is required"),
+  ];
+};
