@@ -9,6 +9,7 @@ import {
   emailVerificationMailTemplate,
 } from "../utils/mail.js";
 import { UserRoleEnum } from "../constant.js";
+import jwt from "jsonwebtoken";
 
 const options = {
   httpOnly: true,
@@ -130,4 +131,46 @@ const logoutUser = asyncHandler(async (req, res) => {
     .json(new apiResponse(200, "User logged out successfully"));
 });
 
-export { registerUser, loginUser, logoutUser };
+const refreshAccessToken = asyncHandler(async (req, res) => {
+  const token =
+    req.cookies?.refreshToken ||
+    req.header("Authorization")?.replace("Bearer ", "");
+  if (!token) throw new apiError(401, "Unauthorized access: Token missing");
+
+  try {
+    const decoded_token = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET);
+
+    const user = await User.findById(decoded_token._id);
+    if (!user)
+      throw new apiError(401, "Unauthorized access: User does not exist");
+
+    if (token !== user.refreshToken)
+      throw new apiError(401, "Refresh token is expired or has been revoked");
+
+    const { accessToken, refreshToken } =
+      await generateAccessAndRefreshTokens(user);
+    user.refreshToken = refreshToken;
+    await user.save({ validateBeforeSave: false });
+
+    const currentUser = user.toObject();
+    delete currentUser.password;
+    delete currentUser.refreshToken;
+    delete currentUser.emailVerificationToken;
+    delete currentUser.emailVerificationTokenExpiry;
+
+    res
+      .status(200)
+      .cookie("refreshToken", refreshToken, options)
+      .cookie("accessToken", accessToken, options)
+      .json(
+        new apiResponse(200, "Tokens refreshed", {
+          user: currentUser,
+          accessToken: accessToken,
+        })
+      );
+  } catch (error) {
+    throw new apiError(401, error?.message || "Invalid refresh token");
+  }
+});
+
+export { registerUser, loginUser, logoutUser, refreshAccessToken };
