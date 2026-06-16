@@ -1,7 +1,7 @@
 import Mailgen from "mailgen";
 import nodemailer from "nodemailer";
 
-const sendEmailToUser = async (options) => {
+export const sendEmailToUser = async (options) => {
   const mailGenerator = new Mailgen({
     theme: "default",
     product: {
@@ -33,7 +33,10 @@ const sendEmailToUser = async (options) => {
   try {
     await transporter.sendMail(mail);
   } catch (error) {
-    console.error("Error sending mail", error);
+    console.error(
+      "Non-fatal: Failed to send verification email during registration",
+      error
+    );
   }
 };
 
