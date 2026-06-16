@@ -41,3 +41,26 @@ export const userLoginValidator = () => {
     body("password").trim().notEmpty().withMessage("Password is required"),
   ];
 };
+
+export const passwordChangeValidation = () => {
+  return [
+    body("oldPassword")
+      .trim()
+      .notEmpty()
+      .withMessage("oldPassword is required"),
+    body("newPassword")
+      .trim()
+      .notEmpty()
+      .withMessage("newPassword is required")
+      .isLength({ min: 8, max: 64 })
+      .withMessage("Password must be between 8 and 64 characters")
+      .custom((value, { req }) => {
+        if (value === req.body.oldPassword) {
+          throw new Error(
+            "New password must be different from your current password"
+          );
+        }
+        return true;
+      }),
+  ];
+};
