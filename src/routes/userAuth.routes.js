@@ -13,6 +13,7 @@ import {
   getCurrentUser,
   changePassword,
   verifyEmailAddress,
+  resendEmailVerification,
 } from "../controllers/userAuth.controller.js";
 import userAuth from "../middleware/userAuth.middleware.js";
 
@@ -27,4 +28,8 @@ router
   .route("/change-password")
   .post(userAuth, passwordChangeValidation(), validate, changePassword);
 router.route("/verify-email/:verificationToken").get(verifyEmailAddress);
+router
+  .route("/resend-email-verification")
+  .post(userAuth, resendEmailVerification);
+
 export default router;

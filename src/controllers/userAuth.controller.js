@@ -231,6 +231,49 @@ const verifyEmailAddress = asyncHandler(async (req, res) => {
   );
 });
 
+const resendEmailVerification = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id);
+  if (!user) throw new apiError(404, "User not found");
+
+  if (user.isEmailVerified)
+    throw new apiError(409, "Email is already verified");
+
+  if (user.emailVerificationTokenExpiry) {
+    const twentyFourHours = 24 * 60 * 60 * 1000;
+    const twoMinuteCooldown = 2 * 60 * 1000;
+
+    const freshExpiryTime = Date.now() + twentyFourHours;
+    const cooldownThreshold = freshExpiryTime - twoMinuteCooldown;
+    if (user.emailVerificationTokenExpiry > cooldownThreshold) {
+      throw new apiError(
+        429,
+        "Please wait 2 minutes before requesting another email."
+      );
+    }
+  }
+
+  const { hashedToken, unhashedToken, tokenExpiry } =
+    await user.generateCryptoToken();
+  user.emailVerificationToken = hashedToken;
+  user.emailVerificationTokenExpiry = tokenExpiry;
+  await user.save({ validateBeforeSave: false });
+
+  await sendEmailToUser({
+    email: user.email,
+    subject: "Verify  your mail",
+    mail: emailVerificationMailTemplate(
+      user.fullName,
+      `${process.env.CLIENT_URL}/verify-email?token=${unhashedToken}`
+    ),
+  });
+
+  res
+    .status(200)
+    .json(new apiResponse(200, "Verification email sent successfully"));
+});
+
+
+
 export {
   registerUser,
   loginUser,
@@ -239,4 +282,5 @@ export {
   getCurrentUser,
   changePassword,
   verifyEmailAddress,
+  resendEmailVerification,
 };
