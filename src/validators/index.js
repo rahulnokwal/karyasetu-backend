@@ -99,3 +99,28 @@ export const updateProfileValidation = () => {
     }),
   ];
 };
+
+export const userDetailsUpdateValidator = () => {
+  return [
+    body("fullName")
+      .optional()
+      .trim()
+      .notEmpty()
+      .withMessage("Full name is required")
+      .isLength({ min: 2, max: 50 })
+      .withMessage("Full name must be between 2 and 50 characters"),
+    body("email")
+      .optional()
+      .trim()
+      .notEmpty()
+      .withMessage("Email is required")
+      .isEmail()
+      .withMessage("Must be a valid email address")
+      .normalizeEmail(),
+    body("mobileNumber")
+      .optional()
+      .trim()
+      .isMobilePhone()
+      .withMessage("If provided, must be a valid mobile phone number"),
+  ];
+};

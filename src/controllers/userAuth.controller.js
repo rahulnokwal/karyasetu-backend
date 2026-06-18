@@ -371,7 +371,41 @@ const updateUserProfile = asyncHandler(async (req, res) => {
     .json(new apiResponse(200, "Profile updated successfully", user));
 });
 
-// prev file delete
+const updateUserDetails = asyncHandler(async (req, res) => {
+  const { fullName, email, mobileNumber } = req.body;
+
+  const updateFields = {};
+  if (fullName) updateFields.fullName = fullName;
+  if (mobileNumber) updateFields.mobileNumber = mobileNumber;
+
+  if (email && email !== req.user.email) {
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      throw new apiError(400, "This email is already in use.");
+    }
+    updateFields.email = email;
+    updateFields.isEmailVerified = false;
+  }
+
+  if (Object.keys(updateFields).length === 0) {
+    throw new apiError(400, "No details provided to update.");
+  }
+
+  const user = await User.findByIdAndUpdate(
+    req.user._id,
+    { $set: updateFields },
+    { new: true }
+  ).select(
+    "-password -emailVerificationToken -emailVerificationTokenExpiry -refreshToken"
+  );
+
+  if (!user)
+    throw new apiError(500, "Something went wrong while updating details.");
+
+  res
+    .status(200)
+    .json(new apiResponse(200, "User details updated successfully", user));
+});
 
 export {
   registerUser,
@@ -385,4 +419,5 @@ export {
   sendForgetPasswordMail,
   resetPassword,
   updateUserProfile,
+  updateUserDetails,
 };

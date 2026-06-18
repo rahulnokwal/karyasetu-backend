@@ -7,6 +7,7 @@ import {
   forgetPasswordValidation,
   resetPasswordValidation,
   updateProfileValidation,
+  userDetailsUpdateValidator,
 } from "../validators/index.js";
 import {
   registerUser,
@@ -20,6 +21,7 @@ import {
   sendForgetPasswordMail,
   resetPassword,
   updateUserProfile,
+  updateUserDetails,
 } from "../controllers/userAuth.controller.js";
 import userAuth from "../middleware/userAuth.middleware.js";
 import { uploadNotes, uploadProfile } from "../middleware/multer.middleware.js";
@@ -53,5 +55,8 @@ router
     validate,
     updateUserProfile
   );
+router
+  .route("/update-details")
+  .patch(userAuth, userDetailsUpdateValidator(), validate, updateUserDetails);
 
 export default router;
