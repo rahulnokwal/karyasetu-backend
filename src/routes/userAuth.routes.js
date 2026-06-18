@@ -6,6 +6,7 @@ import {
   passwordChangeValidation,
   forgetPasswordValidation,
   resetPasswordValidation,
+  updateProfileValidation,
 } from "../validators/index.js";
 import {
   registerUser,
@@ -18,8 +19,10 @@ import {
   resendEmailVerification,
   sendForgetPasswordMail,
   resetPassword,
+  updateUserProfile,
 } from "../controllers/userAuth.controller.js";
 import userAuth from "../middleware/userAuth.middleware.js";
+import { uploadNotes, uploadProfile } from "../middleware/multer.middleware.js";
 
 const router = Router();
 
@@ -35,13 +38,20 @@ router.route("/verify-email/:verificationToken").get(verifyEmailAddress);
 router
   .route("/resend-email-verification")
   .post(userAuth, resendEmailVerification);
-
 router
   .route("/forget-password-mail")
   .post(forgetPasswordValidation(), validate, sendForgetPasswordMail);
-
 router
   .route("/reset-password/:passwordToken")
   .post(resetPasswordValidation(), validate, resetPassword);
+router
+  .route("/update-profile")
+  .post(
+    userAuth,
+    uploadProfile.single("profile"),
+    updateProfileValidation(),
+    validate,
+    updateUserProfile
+  );
 
 export default router;

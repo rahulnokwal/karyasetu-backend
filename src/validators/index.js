@@ -1,4 +1,5 @@
-import { body } from "express-validator";
+import { body, check } from "express-validator";
+import apiError from "../utils/apiError.js";
 
 export const userRegisterValidator = () => {
   return [
@@ -85,5 +86,16 @@ export const resetPasswordValidation = () => {
       .withMessage("newPassword is required")
       .isLength({ min: 8, max: 64 })
       .withMessage("Password must be between 8 and 64 characters"),
+  ];
+};
+
+export const updateProfileValidation = () => {
+  return [
+    check("file").custom((value, { req }) => {
+      if (!req.file) {
+        throw new Error("Profile not found");
+      }
+      return true;
+    }),
   ];
 };

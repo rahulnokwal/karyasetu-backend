@@ -13,6 +13,7 @@ import { UserRoleEnum } from "../constant.js";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import validate from "../middleware/validator.middleware.js";
+import uploadOnCloudinary from "../utils/cloudinary.js";
 
 const options = {
   httpOnly: true,
@@ -352,6 +353,26 @@ const resetPassword = asyncHandler(async (req, res) => {
   res.status(200).json(new apiResponse(200, "Password reset successfully"));
 });
 
+const updateUserProfile = asyncHandler(async (req, res) => {
+  const filePath = req.file?.path;
+  const file = await uploadOnCloudinary(filePath);
+  if (!file) throw new apiError(500, "Error uploading file");
+
+  const user = await User.findByIdAndUpdate(
+    req.user._id,
+    { $set: { profile: file.url } },
+    { new: true }
+  ).select(
+    "-password -refreshToken -emailVerificationToken -emailVerificationTokenExpiry"
+  );
+
+  res
+    .status(200)
+    .json(new apiResponse(200, "Profile updated successfully", user));
+});
+
+// prev file delete
+
 export {
   registerUser,
   loginUser,
@@ -363,4 +384,5 @@ export {
   resendEmailVerification,
   sendForgetPasswordMail,
   resetPassword,
+  updateUserProfile,
 };
