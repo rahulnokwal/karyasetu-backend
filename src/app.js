@@ -23,8 +23,10 @@ app.use(morgan("dev")); //change
 //routes
 import healthcheckRouter from "./routes/healthcheck.routes.js";
 import userAuthRouter from "./routes/userAuth.routes.js";
+import workspaceRouter from "./routes/workspace.routes.js";
 app.use("/api/v1/healthcheck", healthcheckRouter);
 app.use("/api/v1/user", userAuthRouter);
+app.use("/api/v1/workspace", workspaceRouter);
 
 //global error handling
 app.use((err, req, res, _) => {

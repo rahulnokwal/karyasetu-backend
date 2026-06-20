@@ -123,3 +123,14 @@ export const userDetailsUpdateValidator = () => {
       .withMessage("If provided, must be a valid mobile phone number"),
   ];
 };
+
+export const workspaceValidation = () => {
+  return [
+    body("workspaceName")
+      .trim()
+      .notEmpty()
+      .withMessage("Workspace name is required")
+      .isLength({ min: 3, max: 50 })
+      .withMessage("Worksapce name must be between 2 and 50 characters"),
+  ];
+};
