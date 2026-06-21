@@ -65,7 +65,7 @@ export const passwordChangeValidation = () => {
   ];
 };
 
-export const forgetPasswordValidation = () => {
+export const emailValidation = () => {
   return [
     body("email")
       .trim()

@@ -1,10 +1,11 @@
 import { Router } from "express";
-import { workspaceValidation } from "../validators/index.js";
+import { workspaceValidation, emailValidation } from "../validators/index.js";
 import {
   createWorkspace,
   listWorkspaces,
   deleteWorkspace,
   renameWorkspace,
+  sendWorkspaceInvitation,
 } from "../controllers/workspace.controller.js";
 import userAuth from "../middleware/userAuth.middleware.js";
 import validatePermissions from "../middleware/validatePermissions.js";
@@ -28,4 +29,15 @@ router
     validate,
     renameWorkspace
   );
+
+router
+  .route("/workspaces/:workspaceId/invites")
+  .post(
+    userAuth,
+    validatePermissions([UserRoleEnum.OWNER, UserRoleEnum.PROJECT_ADMIN]),
+    emailValidation(),
+    validate,
+    sendWorkspaceInvitation
+  );
+
 export default router;

@@ -3,7 +3,9 @@ import apiResponse from "../utils/apiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import Workspace from "../models/workspace.models.js";
 import WorkspaceMember from "../models/workspaceMember.models.js";
+import WorkspaceMemberInvitation from "../models/WorkspaceMembershipInvites.js";
 import { UserRoleEnum } from "../constant.js";
+import { sendEmailToUser, invitationMailTemplate } from "../utils/mail.js";
 
 const createWorkspace = asyncHandler(async (req, res) => {
   const { workspaceName } = req.body;
@@ -87,4 +89,66 @@ const renameWorkspace = asyncHandler(async (req, res) => {
     .status(200)
     .json(new apiResponse(200, "workspace renamed successfully", workspace));
 });
-export { createWorkspace, listWorkspaces, deleteWorkspace, renameWorkspace };
+
+const sendWorkspaceInvitation = asyncHandler(async (req, res) => {
+  const { email, role } = req.body;
+  const { workspaceId } = req.params;
+
+  const workspace = await Workspace.findById({
+    workspaceId,
+  });
+  if (!workspace) throw new apiError(404, "workspace not found");
+
+  const userInvitation = new WorkspaceMemberInvitation({
+    email,
+    role,
+    workspaceId,
+    invitedBy: req.user._id,
+  });
+
+  const { unhashedToken, hashedToken, tokenExpiry } =
+    userInvitation.generateCryptoToken();
+  userInvitation.emailInvitationToken = hashedToken;
+  userInvitation.emailInvitationTokenExpiry = tokenExpiry;
+
+  await userInvitation.save();
+
+  const options = {
+    email: userInvitation.email,
+    subject: "Invitation to join the workspace",
+    mail: invitationMailTemplate(
+      userInvitation.email,
+      `${process.env.CLIENT_URL}/invitation-accept?token=${unhashedToken}`,
+      req.user.fullName,
+      workspace.workspaceName,
+      userInvitation.role
+    ),
+  };
+
+  const mailInvitation = await sendEmailToUser(options);
+  if (!mailInvitation) {
+    await WorkspaceMemberInvitation.findByIdAndDelete(userInvitation._id);
+    throw new apiError(500, "something went wrong while inviting user");
+  }
+
+  const invitedUserData = userInvitation.toObject();
+  delete userInvitation.emailInvitationToken;
+  delete userInvitation.emailInvitationTokenExpiry;
+  res
+    .status(200)
+    .json(
+      new apiResponse(
+        200,
+        "Invitation email sent successfully",
+        invitedUserData
+      )
+    );
+});
+
+export {
+  createWorkspace,
+  listWorkspaces,
+  deleteWorkspace,
+  renameWorkspace,
+  sendWorkspaceInvitation,
+};

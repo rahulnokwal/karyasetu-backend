@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import crypto from "crypto";
+import { AvailableUserRole, UserRoleEnum } from "../constant.js";
 
 const workspaceMemberInvitationSchema = new mongoose.Schema(
   {
@@ -43,12 +44,10 @@ const WorkspaceMemberInvitation = mongoose.model(
 
 workspaceMemberInvitationSchema.methods.generateCryptoToken = () => {
   const unhashedToken = crypto.randomBytes(20).toString("hex");
-
   const hashedToken = crypto
     .createHash("sha256")
     .update(unhashedToken)
     .digest("hex");
-
   const tokenExpiry = Date.now() + 48 * 60 * 60 * 1000;
 
   return { unhashedToken, hashedToken, tokenExpiry };

@@ -4,7 +4,7 @@ import {
   userRegisterValidator,
   userLoginValidator,
   passwordChangeValidation,
-  forgetPasswordValidation,
+  emailValidation,
   resetPasswordValidation,
   updateProfileValidation,
   userDetailsUpdateValidator,
@@ -42,7 +42,7 @@ router
   .post(userAuth, resendEmailVerification);
 router
   .route("/forget-password-mail")
-  .post(forgetPasswordValidation(), validate, sendForgetPasswordMail);
+  .post(emailValidation(), validate, sendForgetPasswordMail);
 router
   .route("/reset-password/:passwordToken")
   .post(resetPasswordValidation(), validate, resetPassword);
