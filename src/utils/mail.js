@@ -79,3 +79,34 @@ export const forgetPasswordMailTemplate = (username, passwordResetUrl) => {
     },
   };
 };
+
+export const invitationMailTemplate = (
+  targetEmail,
+  invitationUrl,
+  invitedByName,
+  workspaceName,
+  role
+) => {
+  return {
+    body: {
+      name: targetEmail,
+      intro: `You have been invited by **${invitedByName}** to join a workspace.`,
+      dictionary: {
+        Workspace: workspaceName,
+        "Invited By": invitedByName,
+        "Assigned Role": role,
+      },
+      action: {
+        instructions:
+          "To accept this invitation and join the team, please click the button below. This link will expire in 48 hours.",
+        button: {
+          color: "#4F46E5",
+          text: "Accept Invitation",
+          link: invitationUrl,
+        },
+      },
+      outro:
+        "If you do not know this person or did not expect this invitation, you can safely ignore this email.",
+    },
+  };
+};
