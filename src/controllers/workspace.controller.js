@@ -183,6 +183,44 @@ const acceptInvitation = asyncHandler(async (req, res) => {
     .json(new apiResponse(200, "Successfully joined the workspace", member));
 });
 
+const listWorkspaceMember = asyncHandler(async (req, res) => {
+  const { workspaceId } = req.params;
+  const members = await WorkspaceMember.find({
+    workspaceId,
+  }).populate("userId", "fullName email profile");
+
+  res
+    .status(200)
+    .json(new apiResponse(200, "Members fetched successfully", members));
+});
+
+const modifyMemberRole = asyncHandler(async (req, res) => {
+  const { workspaceId, userId } = req.params;
+  const { role } = req.body;
+
+  if (req.user._id.toString() === userId)
+    throw new apiError(400, "You cannot modify your own role");
+
+  if (role == UserRoleEnum.OWNER)
+    throw new apiError(
+      403,
+      "The OWNER role cannot be assigned through this endpoint"
+    );
+
+  const member = await WorkspaceMember.findOneAndUpdate(
+    {
+      workspaceId,
+      userId,
+    },
+    { $set: { role: role } },
+    { new: true, runValidators: true }
+  ).populate("userId", "fullName email");
+  if (!member) throw new apiError(404, "User not found");
+  res
+    .status(200)
+    .json(new apiResponse(200, "Member role update successfully", member));
+});
+
 export {
   createWorkspace,
   listWorkspaces,
@@ -190,4 +228,6 @@ export {
   renameWorkspace,
   sendWorkspaceInvitation,
   acceptInvitation,
+  listWorkspaceMember,
+  modifyMemberRole,
 };

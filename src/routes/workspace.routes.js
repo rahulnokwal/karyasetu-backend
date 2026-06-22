@@ -7,11 +7,14 @@ import {
   renameWorkspace,
   sendWorkspaceInvitation,
   acceptInvitation,
+  listWorkspaceMember,
+  modifyMemberRole,
 } from "../controllers/workspace.controller.js";
 import userAuth from "../middleware/userAuth.middleware.js";
 import validatePermissions from "../middleware/validatePermissions.js";
 import { UserRoleEnum } from "../constant.js";
 import validate from "../middleware/validator.middleware.js";
+import { AvailableUserRole } from "../constant.js";
 
 const router = Router();
 router
@@ -42,4 +45,16 @@ router
   );
 
 router.route("/invites-accept/:token").post(userAuth, acceptInvitation);
+
+router
+  .route("/workspaces/:workspaceId/members")
+  .get(userAuth, validatePermissions(AvailableUserRole), listWorkspaceMember);
+
+router
+  .route("")
+  .patch(
+    userAuth,
+    validatePermissions([UserRoleEnum.OWNER, UserRoleEnum.ADMIN]),
+    modifyMemberRole
+  );
 export default router;
