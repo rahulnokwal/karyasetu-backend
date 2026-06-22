@@ -19,7 +19,7 @@ const workspaceMemberInvitationSchema = new mongoose.Schema(
     role: {
       type: String,
       enum: AvailableUserRole,
-      default: UserRoleEnum.VIEWER,
+      default: UserRoleEnum.MEMBER,
       required: true,
     },
     invitedBy: {

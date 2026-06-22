@@ -31,7 +31,7 @@ router
   .route("/workspaces/:workspaceId")
   .patch(
     userAuth,
-    validatePermissions([UserRoleEnum.OWNER, UserRoleEnum.PROJECT_ADMIN]),
+    validatePermissions([UserRoleEnum.OWNER, UserRoleEnum.ADMIN]),
     workspaceValidation(),
     validate,
     renameWorkspace
@@ -41,7 +41,7 @@ router
   .route("/workspaces/:workspaceId/invites")
   .post(
     userAuth,
-    validatePermissions([UserRoleEnum.OWNER, UserRoleEnum.PROJECT_ADMIN]),
+    validatePermissions([UserRoleEnum.OWNER, UserRoleEnum.ADMIN]),
     emailValidation(),
     validate,
     sendWorkspaceInvitation

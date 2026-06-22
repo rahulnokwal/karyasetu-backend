@@ -2,9 +2,8 @@ export const DB_NAME = "nexusBase";
 
 export const UserRoleEnum = {
   OWNER: "OWNER",
-  PROJECT_ADMIN: "PROJECT_ADMIN",
-  EDITOR: "EDITOR",
-  VIEWER: "VIEWER",
+  ADMIN: "ADMIN",
+  MEMBER: "MEMBER",
 };
 
 export const AvailableUserRole = Object.values(UserRoleEnum);
@@ -26,3 +25,11 @@ export const actionTypeEnum = {
 };
 
 export const actionStatus = Object.values(actionTypeEnum);
+
+export const ProjectRoleEnum = {
+  PROJECT_ADMIN: "PROJECT_ADMIN",
+  EDITOR: "EDITOR",
+  VIEWER: "VIEWER",
+};
+
+export const AvailableProjectRoles = Object.values(ProjectRoleEnum);
