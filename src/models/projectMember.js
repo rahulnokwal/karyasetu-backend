@@ -34,7 +34,5 @@ const projectMemberSchema = new mongoose.Schema(
 
 projectMemberSchema.index({ projectId: 1, userId: 1 }, { unique: true });
 
-export const ProjectMember = mongoose.model(
-  "ProjectMember",
-  projectMemberSchema
-);
+const ProjectMember = mongoose.model("ProjectMember", projectMemberSchema);
+export default ProjectMember;

@@ -134,3 +134,19 @@ export const workspaceValidation = () => {
       .withMessage("Worksapce name must be between 2 and 50 characters"),
   ];
 };
+
+export const projectValidation = () => {
+  return [
+    body("name")
+      .trim()
+      .notEmpty()
+      .withMessage("Project name is required")
+      .isLength({ min: 3, max: 50 })
+      .withMessage("Project name must be between 2 and 50 characters"),
+    body("description")
+      .optional()
+      .trim()
+      .isLength({ min: 3, max: 500 })
+      .withMessage("Project description must be between 2 and 500 characters"),
+  ];
+};
