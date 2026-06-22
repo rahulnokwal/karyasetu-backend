@@ -215,10 +215,52 @@ const modifyMemberRole = asyncHandler(async (req, res) => {
     { $set: { role: role } },
     { new: true, runValidators: true }
   ).populate("userId", "fullName email");
-  if (!member) throw new apiError(404, "User not found");
+  if (!member) throw new apiError(404, "Member not found");
   res
     .status(200)
     .json(new apiResponse(200, "Member role update successfully", member));
+});
+
+const restrictWorkspaceAccess = asyncHandler(async (req, res) => {
+  const { workspaceId, userId } = req.params;
+
+  if (userId == req.user._id.toString())
+    throw new apiError(400, "You cannot remove yourself from workspace");
+
+  const member = await WorkspaceMember.findOne({
+    workspaceId,
+    userId,
+  });
+  if (!member) throw new apiError(404, "Member not found");
+  if (member.role === UserRoleEnum.OWNER)
+    throw new apiError(
+      403,
+      "You cannot restrict OWNER to have access of workspace"
+    );
+
+  const removedMember = await WorkspaceMember.findByIdAndDelete(member._id);
+
+  res
+    .status(200)
+    .json(new apiResponse(200, "Member role removed successfully"));
+});
+
+const leaveWorkspace = asyncHandler(async (req, res) => {
+  const { workspaceId } = req.params;
+
+  const member = await WorkspaceMember.findOne({
+    workspaceId,
+    userId: req.user._id,
+  });
+  if (!member) throw new apiError(400, "You doesn't have access to workspace");
+  if (member.role === UserRoleEnum.OWNER)
+    throw new apiError(
+      400,
+      "Workspace Owner cannot leave. Please transfer ownership or delete the workspace entirely."
+    );
+
+  await WorkspaceMember.findByIdAndDelete(member._id);
+  res.status(200).json(new apiResponse(200, "removed successfully"));
 });
 
 export {
@@ -230,4 +272,6 @@ export {
   acceptInvitation,
   listWorkspaceMember,
   modifyMemberRole,
+  restrictWorkspaceAccess,
+  leaveWorkspace,
 };
