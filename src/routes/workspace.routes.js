@@ -6,6 +6,7 @@ import {
   deleteWorkspace,
   renameWorkspace,
   sendWorkspaceInvitation,
+  acceptInvitation,
 } from "../controllers/workspace.controller.js";
 import userAuth from "../middleware/userAuth.middleware.js";
 import validatePermissions from "../middleware/validatePermissions.js";
@@ -40,4 +41,5 @@ router
     sendWorkspaceInvitation
   );
 
+router.route("/invites-accept/:token").post(userAuth, acceptInvitation);
 export default router;

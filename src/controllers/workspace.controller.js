@@ -145,10 +145,49 @@ const sendWorkspaceInvitation = asyncHandler(async (req, res) => {
     );
 });
 
+const acceptInvitation = asyncHandler(async (req, res) => {
+  const { token } = req.params;
+  if (!token) throw new apiError(400, "Token is missing");
+
+  if (!req.user.isEmailVerified)
+    throw new apiError(
+      403,
+      "Please verify your email address before joining a workspace"
+    );
+
+  const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+
+  const invitationMember = await WorkspaceMemberInvitation.findOne({
+    emailInvitationToken: hashedToken,
+    emailInvitationTokenExpiry: { $gt: Date.now() },
+  });
+  if (!invitationMember)
+    throw new apiError(400, "Tokens are invalid or expired");
+
+  if (invitationMember.email !== req.user.email)
+    throw new apiError(
+      403,
+      "This invitation was sent to a different email address"
+    );
+
+  const member = await WorkspaceMember.create({
+    userId: req.user._id,
+    workspaceId: invitationMember.workspaceId,
+    joinedAt: Date.now(),
+    role: invitationMember.role,
+  });
+
+  await WorkspaceMemberInvitation.findByIdAndDelete(invitationMember._id);
+  res
+    .status(200)
+    .json(new apiResponse(200, "Successfully joined the workspace", member));
+});
+
 export {
   createWorkspace,
   listWorkspaces,
   deleteWorkspace,
   renameWorkspace,
   sendWorkspaceInvitation,
+  acceptInvitation,
 };
