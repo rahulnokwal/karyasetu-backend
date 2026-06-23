@@ -2,7 +2,7 @@ import asyncHandler from "../utils/asyncHandler.js";
 import apiError from "../utils/apiError.js";
 import WorkspaceMember from "../models/workspaceMember.models.js";
 
-const validatePermissions = (roles = []) => {
+const validatePermissions = (allowedRoles = []) => {
   return asyncHandler(async (req, res, next) => {
     const { workspaceId } = req.params;
     if (!workspaceId) {

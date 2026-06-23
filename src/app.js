@@ -28,7 +28,8 @@ import projectRouter from "./routes/project.routes.js";
 app.use("/api/v1/healthcheck", healthcheckRouter);
 app.use("/api/v1/user", userAuthRouter);
 app.use("/api/v1/workspace", workspaceRouter);
-app.use("/api/v1/workspace/:workspaceId/project", workspaceRouter);
+workspaceRouter.use("/:workspaceId/project", projectRouter);
+app.use("/api/v1/projects", projectRouter);
 
 //global error handling
 app.use((err, req, res, _) => {

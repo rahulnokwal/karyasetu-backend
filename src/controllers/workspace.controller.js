@@ -41,25 +41,25 @@ const listWorkspaces = asyncHandler(async (req, res) => {
   const workspaces = WorkspaceMember.aggregate([
     {
       $match: {
-        userId: req.user._id,
+        userId: new mongoose.Types.ObjectId(req.user._id),
       },
     },
     {
       $lookup: {
-        from: "Workspace",
+        from: "workspaces",
         localField: "userId",
         foreignField: "_id",
         as: "workspaces",
       },
     },
-    { $first: "$workspaces" },
+    { $unwind: "$workspaces" },
     {
       $project: {
-        $id: "$workspaces._id",
-        $workspaceName: "$workspaces.workspaceName",
-        $createdBy: "$workspace.createdBy",
-        $role: "$role",
-        $joinedAt: "$joinedAt",
+        id: "$workspaces._id",
+        workspaceName: "$workspaces.workspaceName",
+        createdBy: "$workspace.createdBy",
+        role: "$role",
+        joinedAt: "$joinedAt",
       },
     },
   ]);

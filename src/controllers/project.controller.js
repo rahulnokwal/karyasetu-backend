@@ -3,8 +3,7 @@ import Project from "../models/project.models.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import apiError from "../utils/apiError.js";
 import apiResponse from "../utils/apiResponse.js";
-import { ProjectRoleEnum } from "../constant.js";
-import Workspace from "../models/workspace.models.js";
+import { ProjectRoleEnum, UserRoleEnum } from "../constant.js";
 
 const createProject = asyncHandler(async (req, res) => {
   const { workspaceId } = req.params;
@@ -35,4 +34,47 @@ const createProject = asyncHandler(async (req, res) => {
     .json(new apiResponse(201, "Project created successfully", project));
 });
 
-export { createProject };
+const listProjects = asyncHandler(async (req, res) => {
+  const { workspaceId } = req.params;
+  let projects = [];
+  if (
+    req.workspaceRole === UserRoleEnum.OWNER ||
+    req.workspaceRole === UserRoleEnum.ADMIN
+  ) {
+    projects = await Project.find({
+      workspaceId,
+    });
+  } else {
+    projects = await ProjectMember.aggregate([
+      {
+        $match: {
+          workspaceId: new mongoose.Types.ObjectId(workspaceId),
+          userId: req.user._id,
+        },
+      },
+      {
+        $lookup: {
+          from: "projects",
+          localField: "projectId",
+          foreignField: "_id",
+          as: "projectDetails",
+        },
+      },
+      { $unwind: "$projectDetails" },
+      {
+        $project: {
+          _id: "$projectDetails._id",
+          name: "$projectDetails.name",
+          description: "$projectDetails.description",
+          createdBy: "$projectDetails.createdBy",
+          myRoleInProject: "$role",
+        },
+      },
+    ]);
+  }
+  res
+    .status(200)
+    .json(new apiResponse(200, "Projects fetched successfully", projects));
+});
+
+export { createProject, listProjects };
