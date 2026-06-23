@@ -95,4 +95,36 @@ const getProjectDetails = asyncHandler(async (req, res) => {
     );
 });
 
-export { createProject, listProjects, getProjectDetails };
+const updateProjectDetails = asyncHandler(async (req, res) => {
+  const { projectId } = req.params;
+  const { name, description } = req.body;
+
+  if (!projectId) throw new apiError(400, "Project id is missing");
+
+  const updateFeilds = {};
+  if (name) updateFeilds.name = name;
+  if (description) updateFeilds.description = description;
+
+  if (Object.keys(updateFeilds).length == 0)
+    throw new apiError(400, "No details provided to update");
+
+  const updateDetails = await Project.findByIdAndUpdate(
+    projectId,
+    { $set: updateFeilds },
+    { new: true }
+  );
+  if (!updateDetails)
+    throw new apiError(500, "Something went wrong while updating details");
+
+  res
+    .status(200)
+    .json(
+      new apiResponse(
+        200,
+        "Project details updated successfully",
+        updateDetails
+      )
+    );
+});
+
+export { createProject, listProjects, getProjectDetails, updateProjectDetails };

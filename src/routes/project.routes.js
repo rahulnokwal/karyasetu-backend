@@ -1,9 +1,13 @@
 import { Router } from "express";
-import { projectValidation } from "../validators/index.js";
+import {
+  projectValidation,
+  projectUpdateValidation,
+} from "../validators/index.js";
 import {
   createProject,
   listProjects,
   getProjectDetails,
+  updateProjectDetails,
 } from "../controllers/project.controller.js";
 import userAuth from "../middleware/userAuth.middleware.js";
 import {
@@ -15,6 +19,7 @@ import {
   UserRoleEnum,
   AvailableUserRole,
   AvailableProjectRoles,
+  ProjectRoleEnum,
 } from "../constant.js";
 
 const router = Router({ mergeParams: true });
@@ -39,4 +44,18 @@ router
     validateProjectPermissions(AvailableProjectRoles),
     getProjectDetails
   );
+
+router
+  .route("/:projectId")
+  .patch(
+    userAuth,
+    validateProjectPermissions([
+      ProjectRoleEnum.PROJECT_ADMIN,
+      ProjectRoleEnum.EDITOR,
+    ]),
+    projectUpdateValidation(),
+    validate,
+    updateProjectDetails
+  );
+
 export default router;

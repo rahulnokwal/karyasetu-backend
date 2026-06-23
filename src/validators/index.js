@@ -6,8 +6,8 @@ export const userRegisterValidator = () => {
       .trim()
       .notEmpty()
       .withMessage("Full name is required")
-      .isLength({ min: 2, max: 50 })
-      .withMessage("Full name must be between 2 and 50 characters"),
+      .isLength({ min: 3, max: 50 })
+      .withMessage("Full name must be between 3 and 50 characters"),
     body("email")
       .trim()
       .notEmpty()
@@ -106,8 +106,8 @@ export const userDetailsUpdateValidator = () => {
       .trim()
       .notEmpty()
       .withMessage("Full name is required")
-      .isLength({ min: 2, max: 50 })
-      .withMessage("Full name must be between 2 and 50 characters"),
+      .isLength({ min: 3, max: 50 })
+      .withMessage("Full name must be between 3 and 50 characters"),
     body("email")
       .optional()
       .trim()
@@ -131,7 +131,7 @@ export const workspaceValidation = () => {
       .notEmpty()
       .withMessage("Workspace name is required")
       .isLength({ min: 3, max: 50 })
-      .withMessage("Worksapce name must be between 2 and 50 characters"),
+      .withMessage("Worksapce name must be between 3 and 50 characters"),
   ];
 };
 
@@ -142,11 +142,26 @@ export const projectValidation = () => {
       .notEmpty()
       .withMessage("Project name is required")
       .isLength({ min: 3, max: 50 })
-      .withMessage("Project name must be between 2 and 50 characters"),
+      .withMessage("Project name must be between 3 and 50 characters"),
     body("description")
       .optional()
       .trim()
       .isLength({ min: 3, max: 500 })
-      .withMessage("Project description must be between 2 and 500 characters"),
+      .withMessage("Project description must be between 3 and 500 characters"),
+  ];
+};
+
+export const projectUpdateValidation = () => {
+  return [
+    body("name")
+      .optional()
+      .trim()
+      .isLength({ min: 3, max: 50 })
+      .withMessage("Project name must be between 3 and 50 characters"),
+    body("description")
+      .optional()
+      .trim()
+      .isLength({ min: 3, max: 500 })
+      .withMessage("Project description must be between 3 and 500 characters"),
   ];
 };
