@@ -4,6 +4,7 @@ import asyncHandler from "../utils/asyncHandler.js";
 import apiError from "../utils/apiError.js";
 import apiResponse from "../utils/apiResponse.js";
 import { ProjectRoleEnum, UserRoleEnum } from "../constant.js";
+import WorkspaceMember from "../models/workspaceMember.models.js";
 
 const createProject = asyncHandler(async (req, res) => {
   const { workspaceId } = req.params;
@@ -135,10 +136,63 @@ const deleteProject = asyncHandler(async (req, res) => {
   res.status(200).json(new apiResponse(200, "Project deleted successfully"));
 });
 
+const addProjectMember = asyncHandler(async (req, res) => {
+  const { projectId } = req.params;
+  const { userId, role } = req.body;
+
+  const user = await ProjectMember.findOne({ userId, projectId });
+  if (user) throw new apiError(409, "User already exists");
+
+  const workspace = await Project.findById(projectId);
+  const workspaceMembeship = await WorkspaceMember.findOne({
+    userId,
+    workspaceId: workspace.workspaceId,
+  });
+  if (!workspaceMembeship)
+    throw new apiError(404, "User does not have access to workspace");
+  const projectMembership = await ProjectMember.create({
+    workspaceId: workspaceMembeship.workspaceId,
+    projectId,
+    userId,
+    role,
+    joinedAt: Date.now(),
+  });
+  res
+    .status(200)
+    .json(
+      new apiResponse(200, "Member addded successfully", projectMembership)
+    );
+});
+
+const updateProjectMemberRole = asyncHandler(async (req, res) => {
+  const { projectId, userId } = req.params;
+  const { role } = req.body;
+  if (!projectId || !userId)
+    throw new apiError(400, "Project Id or User Id is missing");
+
+  if (!role) throw new apiError(400, "role is not defined");
+
+  if (req.user._id.toString() === userId)
+    throw new apiError(400, "Project admin role cannot be demoted");
+
+  const member = await ProjectMember.findOneAndUpdate(
+    { projectId, userId },
+    { $set: { role: role } },
+    { new: true, runValidators: true }
+  );
+  if (!member) throw new apiError(404, "Member not exist");
+
+  res
+    .status(200)
+    .json(new apiResponse(200, "Project Member role updated", { member }));
+});
+
 export {
   createProject,
   listProjects,
   getProjectDetails,
   updateProjectDetails,
   deleteProject,
+  addProjectMember,
+  updateProjectMemberRole,
 };

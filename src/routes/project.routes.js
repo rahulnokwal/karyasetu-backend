@@ -9,6 +9,8 @@ import {
   getProjectDetails,
   updateProjectDetails,
   deleteProject,
+  addProjectMember,
+  updateProjectMemberRole,
 } from "../controllers/project.controller.js";
 import userAuth from "../middleware/userAuth.middleware.js";
 import {
@@ -65,5 +67,21 @@ router
     userAuth,
     validateProjectPermissions([ProjectRoleEnum.PROJECT_ADMIN]),
     deleteProject
+  );
+
+router
+  .route("/:projectId/members")
+  .post(
+    userAuth,
+    validateProjectPermissions([ProjectRoleEnum.PROJECT_ADMIN]),
+    addProjectMember
+  );
+
+router
+  .route("/:projectId/members/:userId")
+  .patch(
+    userAuth,
+    validateProjectPermissions([ProjectRoleEnum.PROJECT_ADMIN]),
+    updateProjectMemberRole
   );
 export default router;
