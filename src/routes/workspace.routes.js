@@ -9,6 +9,7 @@ import {
   acceptInvitation,
   listWorkspaceMember,
   modifyMemberRole,
+  transferOwnershipAccess,
   restrictWorkspaceAccess,
   leaveWorkspace,
 } from "../controllers/workspace.controller.js";
@@ -57,6 +58,14 @@ router
     userAuth,
     validatePermissions([UserRoleEnum.OWNER, UserRoleEnum.ADMIN]),
     modifyMemberRole
+  );
+
+router
+  .route("/:workspaceId/transfer-ownership/:userId")
+  .patch(
+    userAuth,
+    validatePermissions([UserRoleEnum.OWNER]),
+    transferOwnershipAccess
   );
 
 router

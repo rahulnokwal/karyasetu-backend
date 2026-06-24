@@ -13,6 +13,7 @@ const createWorkspace = asyncHandler(async (req, res) => {
   const workspace = new Workspace({
     workspaceName,
     createdBy: req.user._id,
+    owner: req.user._id,
   });
 
   await workspace.save();
@@ -58,6 +59,7 @@ const listWorkspaces = asyncHandler(async (req, res) => {
         id: "$workspaces._id",
         workspaceName: "$workspaces.workspaceName",
         createdBy: "$workspace.createdBy",
+        owner: "$workspace.owner",
         role: "$role",
         joinedAt: "$joinedAt",
       },
@@ -221,6 +223,34 @@ const modifyMemberRole = asyncHandler(async (req, res) => {
     .json(new apiResponse(200, "Member role update successfully", member));
 });
 
+const transferOwnershipAccess = asyncHandler(async (req, res) => {
+  const { workspaceId, userId } = req.params;
+  if (!workspaceId || !userId)
+    throw new apiError(400, "Workspace ID and Target User ID are required.");
+
+  const targetMember = await WorkspaceMember.findOne({ workspaceId, userId });
+  if (!targetMember) {
+    throw new apiError(404, "Target user not found.");
+  }
+  const currentMember = await WorkspaceMember.findOne({
+    workspaceId,
+    userId: req.user._id,
+  });
+  targetMember.role = UserRoleEnum.OWNER;
+  currentMember.role = UserRoleEnum.ADMIN;
+
+  await Promise.all([currentMember.save(), targetMember.save()]);
+
+  const workspaceOwner = Workspace.findByIdAndUpdate(workspaceId, {
+    $set: { owner: userId },
+  });
+  res.status(200).json(
+    new apiResponse(200, "OWNER role is transfered successfully", {
+      newOwner: targetMember.userId,
+    })
+  );
+});
+
 const restrictWorkspaceAccess = asyncHandler(async (req, res) => {
   const { workspaceId, userId } = req.params;
 
@@ -272,6 +302,7 @@ export {
   acceptInvitation,
   listWorkspaceMember,
   modifyMemberRole,
+  transferOwnershipAccess,
   restrictWorkspaceAccess,
   leaveWorkspace,
 };

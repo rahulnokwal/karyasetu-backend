@@ -12,6 +12,11 @@ const workspaceSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    owner: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
   },
   { timestamps: true }
 );
@@ -25,6 +30,8 @@ workspaceSchema.pre("findOneAndDelete", async function (next) {
   const Task = mongoose.model("Task");
   const Note = mongoose.model("Note");
   const AuditLog = mongoose.model("AuditLog");
+  const ProjectMember = mongoose.model("ProjectMember");
+  const WorkspaceMemberInvitation = mongoose.model("WorkspaceMemberInvitation");
 
   await Promise.all([
     WorkspaceMember.deleteMany({ workspaceId }),
@@ -32,6 +39,8 @@ workspaceSchema.pre("findOneAndDelete", async function (next) {
     Task.deleteMany({ workspaceId }),
     Note.deleteMany({ workspaceId }),
     AuditLog.deleteMany({ workspaceId }),
+    ProjectMember.deleteMany({ workspaceId }),
+    WorkspaceMemberInvitation.deleteMany({ workspaceId }),
   ]);
   next();
 });
