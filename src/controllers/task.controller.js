@@ -5,6 +5,7 @@ import Project from "../models/project.models.js";
 import Task from "../models/task.models.js";
 import { uploadOnCloudinary, deleteOnCloudinary } from "../utils/cloudinary.js";
 import ProjectMember from "../models/projectMember.js";
+import { use } from "react";
 
 const createTask = asyncHandler(async (req, res) => {
   const { projectId } = req.params;
@@ -179,10 +180,67 @@ const updateTaskInfo = asyncHandler(async (req, res) => {
     );
 });
 
+const assignTask = asyncHandler(async (req, res) => {
+  const { assigneeId } = req.body;
+  const { projectId, taskId } = req.params;
+  if (!assigneeId || !taskId || !projectId)
+    throw new apiError(400, "Project Id, Task Id, or Assignee Id is missing");
+
+  const task = await Task.findOne({
+    _id: taskId,
+    projectId,
+  });
+  if (!task) throw new apiError(400, "Task Id does not exits in this Project");
+
+  const projectMember = await ProjectMember.findOne({
+    userId: assigneeId,
+    projectId: projectId,
+  });
+  if (!projectMember)
+    throw new apiError(
+      403,
+      "User whom you are assigning the task is not an Project Member"
+    );
+
+  task.assigneeId = assigneeId;
+  await task.save();
+
+  res
+    .status(200)
+    .json(new apiResponse(200, "Task is assigned successfully", task));
+});
+
+const changeStatus = asyncHandler(async (req, res) => {
+  const { status } = req.body;
+  const { taskId } = req.params;
+  if (!status) throw new apiError(400, "Status is required");
+  if (!taskId) throw new apiError(400, "Task Id is missing");
+
+  const task = await Task.findOne({
+    _id: taskId,
+  });
+  if (!task) throw new apiError(404, "Task not found");
+
+  if (task.assigneeId.toString() !== req.user._id.toString())
+    throw new apiError("403", "You are not authorized to changed Task Status");
+
+  task.status = status;
+  await task.save();
+  await task.populate([
+    { path: "projectId", select: "name description" },
+    { path: "createdBy", select: "fullName email profile" },
+  ]);
+  res
+    .status(200)
+    .json(new apiResponse(200, "Task Status changed successfully", task));
+});
+
 export {
   createTask,
   listProjectTasks,
   getMyTasks,
   getTaskById,
   updateTaskInfo,
+  assignTask,
+  changeStatus,
 };

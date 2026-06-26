@@ -5,6 +5,8 @@ import {
   getMyTasks,
   getTaskById,
   updateTaskInfo,
+  assignTask,
+  changeStatus,
 } from "../controllers/task.controller.js";
 import {
   createTaskValidation,
@@ -52,7 +54,20 @@ router
     updateTaskInfo
   );
 
+router
+  .route("/:projectId/tasks/:taskId/assign")
+  .patch(
+    userAuth,
+    validateProjectPermissions([
+      ProjectRoleEnum.PROJECT_ADMIN,
+      ProjectRoleEnum.EDITOR,
+    ]),
+    assignTask
+  );
+
 router.route("/my-tasks").get(userAuth, getMyTasks);
+
+router.route("/:taskId/status").patch(userAuth, changeStatus);
 
 router.route("/:taskId").get(userAuth, getTaskById);
 
