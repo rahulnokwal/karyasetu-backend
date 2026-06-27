@@ -1,5 +1,10 @@
 import Router from "express";
-import { addNote } from "../controllers/note.controller.js";
+import {
+  addNote,
+  getTaskNotes,
+  deleteNote,
+  updateNote,
+} from "../controllers/note.controller.js";
 import { NoteValidation } from "../validators/index.js";
 import userAuth from "../middleware/userAuth.middleware.js";
 import { validateProjectPermissions } from "../middleware/validatePermissions.js";
@@ -16,4 +21,19 @@ router
     validate,
     addNote
   );
+
+router
+  .route("/")
+  .get(
+    userAuth,
+    validateProjectPermissions(AvailableProjectRoles),
+    getTaskNotes
+  );
+
+router.route("/:noteId").delete(userAuth, deleteNote);
+
+router
+  .route("/:noteId")
+  .patch(userAuth, NoteValidation(), validate, updateNote);
+
 export default router;

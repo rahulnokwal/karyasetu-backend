@@ -73,7 +73,7 @@ const listProjectTasks = asyncHandler(async (req, res) => {
   if (!projectId) throw new apiError(400, "Project Id is missing");
 
   const [tasks, totalDocument] = await Promise.all([
-    Task.find({ projectId })
+    Task.find({ projectId, status: { $ne: TaskStatusEnum.CANCELLED } })
       .sort({ lexicalOrder: 1 })
       .skip(skip)
       .limit(limit)
@@ -98,6 +98,7 @@ const listProjectTasks = asyncHandler(async (req, res) => {
 const getMyTasks = asyncHandler(async (req, res) => {
   const tasks = await Task.find({
     assigneeId: req.user._id,
+    status: { $ne: TaskStatusEnum.CANCELLED },
   })
     .sort({ lexicalOrder: 1 })
     .lean()
