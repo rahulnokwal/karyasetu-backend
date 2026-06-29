@@ -1,11 +1,14 @@
+import mongoose from "mongoose";
 import ProjectMember from "../models/projectMember.js";
 import Project from "../models/project.models.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import apiError from "../utils/apiError.js";
 import apiResponse from "../utils/apiResponse.js";
-import { ProjectRoleEnum, UserRoleEnum } from "../constant.js";
+import { ProjectRoleEnum, UserRoleEnum, actionTypeEnum } from "../constant.js";
 import WorkspaceMember from "../models/workspaceMember.models.js";
 import Task from "../models/task.models.js";
+import createAuditLog from "../utils/auditLogService.js";
+import { deleteBulk } from "../utils/cloudinary.js";
 
 const createProject = asyncHandler(async (req, res) => {
   const { workspaceId } = req.params;
@@ -19,7 +22,7 @@ const createProject = asyncHandler(async (req, res) => {
   });
 
   try {
-    const projectMember = await ProjectMember.create({
+    await ProjectMember.create({
       workspaceId,
       projectId: project._id,
       userId: project.createdBy,
@@ -28,8 +31,16 @@ const createProject = asyncHandler(async (req, res) => {
     });
   } catch (error) {
     await Project.findByIdAndDelete(project._id);
-    throw new apiError(500, "Project creation failed");
+    throw new apiError(500, "Project creation failed", error);
   }
+
+  createAuditLog({
+    workspaceId: workspaceId,
+    projectId: project._id,
+    performedBy: req.user._id,
+    actionType: actionTypeEnum.CREATED,
+    changes: { action: `Project ${name} created` },
+  });
 
   res
     .status(201)
@@ -103,20 +114,42 @@ const updateProjectDetails = asyncHandler(async (req, res) => {
 
   if (!projectId) throw new apiError(400, "Project id is missing");
 
-  const updateFeilds = {};
-  if (name) updateFeilds.name = name;
-  if (description) updateFeilds.description = description;
+  const oldProject = await Project.findById(projectId);
+  if (!oldProject) throw new apiError(404, "Project not found");
 
-  if (Object.keys(updateFeilds).length == 0)
+  const updateFields = {};
+  const auditChanges = {};
+
+  if (name && name !== oldProject.name) {
+    updateFields.name = name;
+    auditChanges.name = { from: oldProject.name, to: name };
+  }
+  if (description && description !== oldProject.description) {
+    updateFields.description = description;
+    auditChanges.description = {
+      from: oldProject.description,
+      to: description,
+    };
+  }
+
+  if (Object.keys(updateFields).length == 0)
     throw new apiError(400, "No details provided to update");
 
   const updateDetails = await Project.findByIdAndUpdate(
     projectId,
-    { $set: updateFeilds },
+    { $set: updateFields },
     { new: true }
   );
   if (!updateDetails)
     throw new apiError(500, "Something went wrong while updating details");
+
+  createAuditLog({
+    workspaceId: updateDetails.workspaceId,
+    projectId: updateDetails._id,
+    performedBy: req.user._id,
+    actionType: actionTypeEnum.UPDATED,
+    changes: auditChanges,
+  });
 
   res
     .status(200)
@@ -141,6 +174,15 @@ const deleteProject = asyncHandler(async (req, res) => {
 
   const project = await Project.findByIdAndDelete(projectId);
   if (!project) throw new apiError(404, "Project not found");
+
+  createAuditLog({
+    workspaceId: project.workspaceId,
+    projectId: project._id,
+    performedBy: req.user._id,
+    actionType: actionTypeEnum.DELETED,
+    changes: { action: `Project ${project.name} deleted` },
+  });
+
   res.status(200).json(new apiResponse(200, "Project deleted successfully"));
 });
 

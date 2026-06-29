@@ -9,7 +9,7 @@ import { NoteValidation } from "../validators/index.js";
 import userAuth from "../middleware/userAuth.middleware.js";
 import { validateProjectPermissions } from "../middleware/validatePermissions.js";
 import validate from "../middleware/validator.middleware.js";
-import { AvailableProjectRoles, ProjectRoleEnum } from "../constant.js";
+import { AvailableProjectRoles } from "../constant.js";
 
 const router = Router({ mergeParams: true });
 

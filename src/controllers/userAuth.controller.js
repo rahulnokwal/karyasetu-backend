@@ -123,7 +123,7 @@ const loginUser = asyncHandler(async (req, res) => {
 });
 
 const logoutUser = asyncHandler(async (req, res) => {
-  const user = await User.findByIdAndUpdate(
+  await User.findByIdAndUpdate(
     req.user._id,
     { $unset: { refreshToken: 1 } },
     { new: true }
@@ -364,7 +364,7 @@ const updateUserProfile = asyncHandler(async (req, res) => {
       await deleteOnCloudinary(currentUser.profileId, "image");
     }
   } catch (error) {
-    throw new apiError(500, "Error deleting files");
+    throw new apiError(500, "Error deleting files", error);
   }
 
   const user = await User.findByIdAndUpdate(

@@ -3,15 +3,11 @@ import apiError from "../utils/apiError.js";
 import apiResponse from "../utils/apiResponse.js";
 import Project from "../models/project.models.js";
 import Task from "../models/task.models.js";
-import {
-  uploadOnCloudinary,
-  deleteOnCloudinary,
-  deleteBulk,
-} from "../utils/cloudinary.js";
+import { uploadOnCloudinary, deleteOnCloudinary } from "../utils/cloudinary.js";
 import ProjectMember from "../models/projectMember.js";
-import { use } from "react";
-import { AvailableTaskStatus, TaskStatusEnum } from "../constant.js";
+import { actionTypeEnum, TaskStatusEnum } from "../constant.js";
 import { lexicalOrdering } from "../utils/lexicalOrdering.js";
+import createAuditLog from "../utils/auditLogService.js";
 
 const createTask = asyncHandler(async (req, res) => {
   const { projectId } = req.params;
@@ -40,7 +36,7 @@ const createTask = asyncHandler(async (req, res) => {
     if (req.files) {
       task.attachments = [];
       const files = req.files;
-      for (let file of files) {
+      for (const file of files) {
         const uploadedFile = await uploadOnCloudinary(file.path);
         task.attachments.push({
           url: uploadedFile.url,
@@ -51,13 +47,23 @@ const createTask = asyncHandler(async (req, res) => {
       }
     }
   } catch (error) {
-    for (let file of task.attachments) {
+    for (const file of task.attachments) {
       await deleteOnCloudinary(file.publicId);
     }
-    throw new apiError(500, "File uploadation fails");
+    throw new apiError(500, "File uploadation fails", error);
   }
 
   const createdTask = await task.save();
+
+  createAuditLog({
+    workspaceId: createdTask.workspaceId,
+    projectId: createdTask.projectId,
+    taskId: createdTask._id,
+    performedBy: req.user._id,
+    actionType: actionTypeEnum.CREATED,
+    changes: { action: `Task ${createdTask._id} created` },
+  });
+
   res
     .status(200)
     .json(new apiResponse(200, "Task created successfully", createdTask));
@@ -146,15 +152,29 @@ const updateTaskInfo = asyncHandler(async (req, res) => {
   if (!projectId || !taskId)
     throw new apiError(400, "Project Id or Task Id is missing");
 
+  const oldTask = await Task.findOne({
+    _id: taskId,
+    projectId,
+  }).lean();
+  if (!oldTask) throw new apiError(404, "Task not found");
+
   const updateFields = {};
-  if (title) updateFields.title = title;
-  if (description) updateFields.description = description;
+  const auditChanges = {};
+
+  if (title && title !== oldTask.title) {
+    updateFields.title = title;
+    auditChanges.title = { from: oldTask.title, to: title };
+  }
+  if (description && description !== oldTask.description) {
+    updateFields.description = description;
+    auditChanges.description = { from: oldTask.description, to: description };
+  }
 
   const attachments = [];
   try {
     if (req.files) {
       const uploadFiles = req.files;
-      for (let file of uploadFiles) {
+      for (const file of uploadFiles) {
         const uploadedFile = await uploadOnCloudinary(file.path);
         attachments.push({
           url: uploadedFile.url,
@@ -163,12 +183,15 @@ const updateTaskInfo = asyncHandler(async (req, res) => {
           size: uploadedFile.size,
         });
       }
+      auditChanges.attachments = {
+        action: `Added ${attachments.length} new file(s)`,
+      };
     }
   } catch (error) {
-    for (let file of attachments) {
+    for (const file of attachments) {
       await deleteOnCloudinary(file.publicId);
     }
-    throw new apiError(500, "File uploadation fails");
+    throw new apiError(500, "File uploadation fails", error);
   }
   if (Object.keys(updateFields).length == 0 && attachments.length == 0)
     throw new apiError(400, "No details provided to update");
@@ -177,16 +200,22 @@ const updateTaskInfo = asyncHandler(async (req, res) => {
   if (attachments.length > 0)
     query.$push = { attachments: { $each: attachments } };
 
-  const updatedTask = await Task.findOneAndUpdate(
-    { _id: taskId, projectId: projectId },
-    query,
-    {
-      new: true,
-      runValidators: true,
-    }
-  );
+  const updatedTask = await Task.findByIdAndUpdate(taskId, query, {
+    new: true,
+    runValidators: true,
+  });
   if (!updatedTask)
     throw new apiError(500, "something went wrong while updating task");
+
+  createAuditLog({
+    workspaceId: updatedTask.workspaceId,
+    projectId: updatedTask.projectId,
+    taskId: updatedTask._id,
+    performedBy: req.user._id,
+    actionType: actionTypeEnum.UPDATED,
+    changes: auditChanges,
+  });
+
   res
     .status(200)
     .json(
@@ -232,22 +261,33 @@ const changeStatus = asyncHandler(async (req, res) => {
   if (status === TaskStatusEnum.CANCELLED)
     throw new apiError(
       400,
-      "You are not allowed to CANCEL TASK. ask project admin to do so"
+      "You are not allowed to CANCEL TASK. ask project owner or admin to do so"
     );
   const task = await Task.findOne({
     _id: taskId,
   });
   if (!task) throw new apiError(404, "Task not found");
-
+  if (!task.assigneeId)
+    throw new apiError(
+      400,
+      "Task is not assigned to anyone. to change the status you must assign task to user first"
+    );
   if (task.assigneeId.toString() !== req.user._id.toString())
-    throw new apiError("403", "You are not authorized to changed Task Status");
+    throw new apiError(403, "You are not authorized to changed Task Status");
 
+  const oldStatus = task.status;
   task.status = status;
   await task.save();
-  await task.populate([
-    { path: "projectId", select: "name description" },
-    { path: "createdBy", select: "fullName email profile" },
-  ]);
+
+  createAuditLog({
+    workspaceId: task.workspaceId,
+    projectId: task.projectId,
+    taskId: task._id,
+    performedBy: req.user._id,
+    actionType: actionTypeEnum.UPDATED,
+    changes: { status: { from: oldStatus, to: task.status } },
+  });
+
   res
     .status(200)
     .json(new apiResponse(200, "Task Status changed successfully", task));
@@ -262,6 +302,16 @@ const deleteTask = asyncHandler(async (req, res) => {
   if (!task) throw new apiError(404, "Task not found");
   task.status = TaskStatusEnum.CANCELLED;
   await task.save();
+
+  createAuditLog({
+    workspaceId: task.workspaceId,
+    projectId: task.projectId,
+    taskId: task._id,
+    performedBy: req.user._id,
+    actionType: actionTypeEnum.CANCELLED,
+    changes: { action: `Task ${taskId} deleted` },
+  });
+
   res.status(200).json(new apiResponse(200, "Task has been CANCELLED"));
 });
 

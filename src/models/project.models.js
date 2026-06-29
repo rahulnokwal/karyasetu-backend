@@ -43,6 +43,7 @@ projectSchema.pre("findOneAndDelete", async function (next) {
     AuditLog.deleteMany({ projectId }),
     ProjectMember.deleteMany({ projectId }),
   ]);
+  next();
 });
 
 export default Project;

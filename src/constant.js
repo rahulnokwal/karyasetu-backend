@@ -22,7 +22,7 @@ export const actionTypeEnum = {
   CREATED: "CREATED",
   UPDATED: "UPDATED",
   DELETED: "DELETED",
-  COMMENTED: "COMMENTED",
+  CANCELLED: "CANCELLED",
 };
 
 export const actionStatus = Object.values(actionTypeEnum);

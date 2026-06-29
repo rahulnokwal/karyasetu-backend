@@ -1,7 +1,6 @@
 import asyncHandler from "../utils/asyncHandler.js";
 import apiError from "../utils/apiError.js";
 import apiResponse from "../utils/apiResponse.js";
-import Project from "../models/project.models.js";
 import Task from "../models/task.models.js";
 import Note from "../models/note.model.js";
 import ProjectMember from "../models/projectMember.js";

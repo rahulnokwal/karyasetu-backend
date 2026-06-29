@@ -1,13 +1,15 @@
+import mongoose from "mongoose";
 import apiError from "../utils/apiError.js";
 import apiResponse from "../utils/apiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import Workspace from "../models/workspace.models.js";
 import WorkspaceMember from "../models/workspaceMember.models.js";
 import WorkspaceMemberInvitation from "../models/WorkspaceMembershipInvites.js";
-import { UserRoleEnum } from "../constant.js";
+import { UserRoleEnum, actionTypeEnum } from "../constant.js";
 import { sendEmailToUser, invitationMailTemplate } from "../utils/mail.js";
 import { deleteBulk } from "../utils/cloudinary.js";
 import Task from "../models/task.models.js";
+import createAuditLog from "../utils/auditLogService.js";
 
 const createWorkspace = asyncHandler(async (req, res) => {
   const { workspaceName } = req.body;
@@ -31,9 +33,17 @@ const createWorkspace = asyncHandler(async (req, res) => {
     await Workspace.findByIdAndDelete(workspace._id);
     throw new apiError(
       500,
-      "Failed to initialize workspace owner. Please try again."
+      "Failed to initialize workspace owner. Please try again.",
+      error
     );
   }
+
+  createAuditLog({
+    workspaceId: workspace._id,
+    performedBy: req.user._id,
+    actionType: actionTypeEnum.CREATED,
+    changes: { action: `${workspaceName} workspace created` },
+  });
 
   res
     .status(201)
@@ -79,7 +89,7 @@ const deleteWorkspace = asyncHandler(async (req, res) => {
   );
   await deleteBulk(publicIds);
 
-  const workspaceDeletion = await Workspace.findByIdAndDelete(workspaceId);
+  await Workspace.findByIdAndDelete(workspaceId);
 
   res
     .status(200)
@@ -90,15 +100,26 @@ const renameWorkspace = asyncHandler(async (req, res) => {
   const { workspaceName } = req.body;
   const { workspaceId } = req.params;
 
-  const workspace = await Workspace.findByIdAndUpdate(
-    workspaceId,
-    { workspaceName: workspaceName },
-    { new: true }
-  );
+  const workspace = await Workspace.findById(workspaceId);
   if (!workspace) throw new apiError(404, "Workspace not found");
+
+  const oldName = workspace.workspaceName;
+  workspace.workspaceName = workspaceName;
+  const renamedWorkspace = await workspace.save();
+
+  const changes = { name: { from: oldName, to: workspaceName } };
+
+  createAuditLog({
+    workspaceId,
+    performedBy: req.user._id,
+    actionType: actionTypeEnum.UPDATED,
+    changes,
+  });
   res
     .status(200)
-    .json(new apiResponse(200, "workspace renamed successfully", workspace));
+    .json(
+      new apiResponse(200, "workspace renamed successfully", renamedWorkspace)
+    );
 });
 
 const sendWorkspaceInvitation = asyncHandler(async (req, res) => {
@@ -256,9 +277,10 @@ const transferOwnershipAccess = asyncHandler(async (req, res) => {
 
   await Promise.all([currentMember.save(), targetMember.save()]);
 
-  const workspaceOwner = Workspace.findByIdAndUpdate(workspaceId, {
+  Workspace.findByIdAndUpdate(workspaceId, {
     $set: { owner: userId },
   });
+
   res.status(200).json(
     new apiResponse(200, "OWNER role is transfered successfully", {
       newOwner: targetMember.userId,
@@ -283,7 +305,7 @@ const restrictWorkspaceAccess = asyncHandler(async (req, res) => {
       "You cannot restrict OWNER to have access of workspace"
     );
 
-  const removedMember = await WorkspaceMember.findByIdAndDelete(member._id);
+  await WorkspaceMember.findByIdAndDelete(member._id);
 
   res
     .status(200)

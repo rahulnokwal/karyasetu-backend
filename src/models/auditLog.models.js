@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { actionTypeEnum, actionStatus } from "../constant.js";
+import { actionStatus } from "../constant.js";
 
 const auditLogSchema = new mongoose.Schema(
   {
