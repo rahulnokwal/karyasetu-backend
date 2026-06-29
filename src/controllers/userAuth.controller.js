@@ -9,10 +9,11 @@ import {
   emailVerificationMailTemplate,
   forgetPasswordMailTemplate,
 } from "../utils/mail.js";
-import { UserRoleEnum } from "../constant.js";
+import { UserRoleEnum, actionTypeEnum } from "../constant.js";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { uploadOnCloudinary, deleteOnCloudinary } from "../utils/cloudinary.js";
+import createAuditLog from "../utils/auditLogService.js";
 
 const options = {
   httpOnly: true,
@@ -67,12 +68,20 @@ const registerUser = asyncHandler(async (req, res) => {
   const userWorkspace = await Workspace.create({
     workspaceName: `${firstName}'s Workspace`,
     createdBy: newUser._id,
+    owner: newUser._id,
   });
 
   await WorkspaceMember.create({
     userId: newUser._id,
     workspaceId: userWorkspace._id,
     role: UserRoleEnum.OWNER,
+  });
+
+  createAuditLog({
+    workspaceId: userWorkspace._id,
+    performedBy: newUser._id,
+    actionType: actionTypeEnum.CREATED,
+    changes: { action: `${userWorkspace.workspaceName} created` },
   });
 
   const savedUser = newUser.toObject();
